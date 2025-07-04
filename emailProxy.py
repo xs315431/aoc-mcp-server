@@ -1,4 +1,6 @@
 import smtplib
+import os
+from dotenv import load_dotenv
 from email.mime.text import MIMEText
 from pydantic import Field
 from typing import Annotated
@@ -8,7 +10,7 @@ mcp = FastMCP(name="emailProxy")
 
 AUTH_CODE = 'cxgqiyscuyxpdeac'
 SENDER_EMAIL = '2830904279@qq.com'
-
+load_dotenv()
 
 @mcp.tool()
 def send_simple_email(
@@ -43,5 +45,5 @@ if __name__ == '__main__':
     # result=send_simple_email(
     #     receiver_email='2830904279@qq.com', content='中午好')
     # print(result)
-    mcp.settings.port=8001
+    mcp.settings.port=int(os.getenv("EMAIL_PORT"))
     mcp.run('sse')
