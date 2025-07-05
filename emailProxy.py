@@ -7,10 +7,10 @@ from typing import Annotated
 from fastmcp import FastMCP
 
 mcp = FastMCP(name="emailProxy")
-
-AUTH_CODE = 'cxgqiyscuyxpdeac'
-SENDER_EMAIL = '2830904279@qq.com'
 load_dotenv()
+
+AUTH_CODE =os.getenv('AUTH_CODE')
+SENDER_EMAIL =os.getenv('SENDER_EMAIL')
 
 @mcp.tool()
 def send_simple_email(
