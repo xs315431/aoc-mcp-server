@@ -1,5 +1,6 @@
 import os
 import sys
+from dotenv import load_dotenv
 import logging
 import argparse
 from pathlib import Path
@@ -8,9 +9,9 @@ from typing import Any
 import asyncio
 import datetime
 import json
-
 from mcp.server.fastmcp import FastMCP
 
+load_dotenv()
 # 修复Windows上的编码问题
 if sys.platform == "win32" and os.environ.get('PYTHONIOENCODING') is None:
     sys.stdin.reconfigure(encoding="utf-8")
@@ -22,7 +23,7 @@ if sys.platform == "win32" and os.environ.get('PYTHONIOENCODING') is None:
 
 def get_base_url():
     # 优先使用环境变量
-    env_url = os.environ.get('NEWS_API_URL')
+    env_url = os.getenv('NEWS_API_URL')
     if env_url:
         return env_url
 
@@ -83,10 +84,7 @@ SOURCE_MAPPINGS = {
 
     "github": "github-trending-today",
     "github热榜": "github-trending-today",
-
-    "linux": "linuxdo-hot",
-    "linux热榜": "linuxdo-hot",
-    "linuxdo": "linuxdo-hot",
+ 
 
     "贴吧": "tieba",
     "百度贴吧": "tieba",
@@ -106,9 +104,7 @@ SOURCE_MAPPINGS = {
 
     "雪球": "xueqiu",
     "xueqiu": "xueqiu",
-
-    "快手": "kuaishou",
-    "kuaishou": "kuaishou",
+ 
 }
 
 # 初始化 FastMCP 服务器
@@ -428,4 +424,5 @@ if __name__ == "__main__":
     # result=news_mgr.convert_to_markdown(mockdata)
     # print(result,'result')
     # 初始化并运行服务器
+    mcp.settings.port = int(os.getenv("HOSTNEWPORT"))
     mcp.run(transport='sse')
