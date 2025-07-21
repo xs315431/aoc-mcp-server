@@ -6,21 +6,26 @@ from pydantic import Field
 from typing import Annotated
 from fastmcp import FastMCP
 
-mcp = FastMCP(name="emailProxy")
 load_dotenv()
 
-AUTH_CODE =os.getenv('AUTH_CODE')
-SENDER_EMAIL =os.getenv('SENDER_EMAIL')
+AUTH_CODE = os.getenv('AUTH_CODE')
+SENDER_EMAIL = os.getenv('SENDER_EMAIL')
+SMTP_SERVER = os.getenv('SMTP_SERVER')
+EMAIL_PORT = os.getenv('EMAIL_PORT')
+
+mcp = FastMCP(name="emailProxy", port=EMAIL_PORT)
+
 
 @mcp.tool()
 def send_simple_email(
     receiver_email: Annotated[str, Field(description="收件人")],
-    content: Annotated[str, Field(description="邮件内容")],
+    content: Annotated[str, Field(description="邮件内容，需要丰富一下邮件的内容")],
     subject: Annotated[str, Field(description="邮件主题根据场合设定")]
 ) -> str:
     '''
     给用户指定邮箱发送内容邮件，如果用户没有提供邮箱，则需要提醒用户提供邮箱
     默认主题为“通知”，支持自定义主题。生成内容后展示给用户，用户回复确认后才进行发送。
+    润色一下邮箱的内容，做到通情达理
     '''
     msg = MIMEText(content, 'plain', 'utf-8')
     msg['From'] = SENDER_EMAIL
@@ -28,7 +33,7 @@ def send_simple_email(
     msg['Subject'] = subject
 
     try:
-        with smtplib.SMTP_SSL("smtp.qq.com", 465) as server:
+        with smtplib.SMTP_SSL(SMTP_SERVER, 465) as server:
             server.login(SENDER_EMAIL, AUTH_CODE)
             server.send_message(msg)
         return "✅ 邮件发送成功"
@@ -45,5 +50,4 @@ if __name__ == '__main__':
     # result=send_simple_email(
     #     receiver_email='2830904279@qq.com', content='中午好')
     # print(result)
-    mcp.settings.port=int(os.getenv("EMAIL_PORT"))
     mcp.run('sse')
