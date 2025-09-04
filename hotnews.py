@@ -10,6 +10,8 @@ import asyncio
 import datetime
 import json
 from mcp.server.fastmcp import FastMCP
+from pydantic import Field
+from typing import Annotated
 
 load_dotenv()
 # 修复Windows上的编码问题
@@ -19,7 +21,7 @@ if sys.platform == "win32" and os.environ.get('PYTHONIOENCODING') is None:
     sys.stderr.reconfigure(encoding="utf-8")
 
 # 判断运行方式并获取配置
-
+# 36氪,51CTO,A站,百度,B站,酷安,CSDN,数字尾巴,豆瓣小组,豆瓣电影,抖音,地震预警,极客公园,果壳,虎扑,爱范儿,IT之家,掘金,网易新闻,水木社区,NGA玩家社区,NodeSeek,纽约时报,Product Hunt,腾讯新闻,新浪新闻,新浪,什么值得买,少数派,崩坏：星穹铁道,澎湃新闻,百度贴吧,今日头条,V2EX,天气预警,微博,微信读书,云视听,知乎日报,知乎,
 
 def get_base_url():
     # 优先使用环境变量
@@ -52,59 +54,170 @@ logger = logging.getLogger('mcp_news_server')
 logger.info(f"启动新闻MCP服务器，API基础URL: {BASE_URL}")
 
 # 可用的新闻源列表
-sources_list = ["coolapk", "bilibili-hot-search", "zhihu", "weibo", "toutiao", "douyin", "github-trending-today",
-                "linuxdo-hot", "tieba", "wallstreetcn", "thepaper", "cls-hot", "xueqiu", "kuaishou"]
+sources_list = ["36kr","51cto","acfun","baidu","bilibili","coolapk","csdn","dgtle","douban","douyin",
+                "earthquake","geekpark","guokr","hupu","ifanr","ithome","juejin","netease","newsmth",
+                "ngabbs","qq","sina","smzdm","sspai","thepaper","tieba","toutiao","weibo","zhihu"]
+
+
+
 
 # 新闻源名称映射表：包含中文名、别名等
 SOURCE_MAPPINGS = {
-    # 常用平台映射
-    "酷安": "coolapk",
+    # 常用平台映射（用户输入→标准名称）
+    "36氪": "36kr",
+    "三十六氪": "36kr",
+    "氪媒体": "36kr",
+    "36氪网": "36kr",
+
+    "51cto": "51cto",
+    "51CTO": "51cto",
+    "51学堂": "51cto",
+    "51CTO学堂": "51cto",
+    "51技术社区": "51cto",
+
+    "acfun": "acfun",
+    "AcFun": "acfun",
+    "A站": "acfun", 
+
+    "baidu": "baidu",
+    "百度": "baidu",
+    "百度一下": "baidu",
+    "百度搜索": "baidu",
+
+    "bilibili": "bilibili",
+    "B站": "bilibili",
+    "小破站": "bilibili", 
+    "哔哩哔哩": "bilibili",
+    "Bilibili": "bilibili",
+
     "coolapk": "coolapk",
-    "酷安网": "coolapk",
+    "酷安": "coolapk",
+    "酷安应用市场": "coolapk",
+    "酷安下载": "coolapk",
 
-    "b站": "bilibili-hot-search",
-    "哔哩哔哩": "bilibili-hot-search",
-    "bilibili": "bilibili-hot-search",
-    "哔哩": "bilibili-hot-search",
+    "csdn": "csdn",
+    "CSDN": "csdn",
+    "CSDN博客": "csdn",
 
-    "知乎": "zhihu",
-    "zhihu": "zhihu",
+    "dgtle": "dgtle",
+    "数字尾巴": "dgtle",
+    "尾巴社区": "dgtle",
 
-    "微博": "weibo",
-    "weibo": "weibo",
-    "新浪微博": "weibo",
+    "douban-group": "douban-group",
+    "豆瓣小组": "douban-group",
+    "豆瓣圈子": "douban-group",
+    "豆瓣小组讨论": "douban-group",
 
-    "头条": "toutiao",
-    "今日头条": "toutiao",
-    "toutiao": "toutiao",
+    "douban-movie": "douban-movie",
+    "豆瓣电影": "douban-movie",
+    "豆瓣影评": "douban-movie",
+    "豆瓣电影评分": "douban-movie",
 
-    "抖音": "douyin",
     "douyin": "douyin",
-    "tiktok": "douyin",
+    "抖音": "douyin",
+    "抖音短视频": "douyin",
 
-    "github": "github-trending-today",
-    "github热榜": "github-trending-today",
+    "earthquake": "earthquake",
+    "地震预警": "earthquake",
+    "地震实时监测": "earthquake",
+    "地震信息": "earthquake",
+
+    "geekpark": "geekpark",
+    "极客公园": "geekpark",
+    "极客公园论坛": "geekpark",
+    "科技爱好者社区": "geekpark",  # 极客公园的定位
+
+    "guokr": "guokr",
+    "果壳": "guokr",
+    "果壳网": "guokr",
+    "科学人": "guokr",  # 果壳旗下栏目
+
+    "hupu": "hupu",
+    "虎扑": "hupu",
+    "虎扑体育": "hupu",
+    "步行街": "hupu",  # 虎扑步行街板块的简称
+
+    "ifanr": "ifanr",
+    "爱范儿": "ifanr",
+    "爱范儿网": "ifanr",
+    "科技媒体": "ifanr",  # 爱范儿的定位
+
+    "ithome-xijiayi": "ithome-xijiayi",
+    "IT之家（科技）": "ithome-xijiayi",
+    "IT之家科技版": "ithome-xijiayi",
+    "IT资讯": "ithome-xijiayi",
+
+
+    "juejin": "juejin",
+    "掘金": "juejin",
+    "掘金社区": "juejin",
+    "开发者社区": "juejin",  # 掘金的核心用户
  
 
-    "贴吧": "tieba",
-    "百度贴吧": "tieba",
-    "tieba": "tieba",
+    "netease-news": "netease-news",
+    "网易新闻": "netease-news",
+    "网易新闻客户端": "netease-news",
+    "网易资讯": "netease-news",
 
-    "华尔街见闻": "wallstreetcn",
-    "wallstreetcn": "wallstreetcn",
-    "华尔街": "wallstreetcn",
+    "newsmth": "newsmth",
+    "水木社区": "newsmth",
+    "水木清华": "newsmth",  # 源自清华大学的BBS
+    "校园BBS": "newsmth",
 
-    "澎湃": "thepaper",
-    "澎湃新闻": "thepaper",
+    "ngabbs": "ngabbs",
+    "NGA玩家社区": "ngabbs",
+    "NGA": "ngabbs",
+    "艾泽拉斯国家地理": "ngabbs",  # NGA的全称
+ 
+
+    "qq-news": "qq-news",
+    "腾讯新闻": "qq-news",
+    "腾讯新闻客户端": "qq-news",
+    "腾讯资讯": "qq-news",
+
+    "sina-news": "sina-news",
+    "新浪新闻": "sina-news",
+    "新浪新闻客户端": "sina-news",
+    "新浪资讯": "sina-news",
+ 
+
+    "smzdm": "smzdm",
+    "什么值得买": "smzdm",
+    "SMZDM": "smzdm",
+    "优惠信息": "smzdm",  # 核心内容
+
+    "sspai": "sspai",
+    "少数派": "sspai",
+    "SPSPA": "sspai",
+    "数码工具推荐": "sspai",  # 核心内容
+ 
+
     "thepaper": "thepaper",
+    "澎湃新闻": "thepaper",
+    "澎湃": "thepaper",
+    "澎湃新闻网": "thepaper",
 
-    "财联社": "cls-hot",
-    "财联": "cls-hot",
-    "cls": "cls-hot",
+    "tieba": "tieba",
+    "百度贴吧": "tieba",
+    "贴吧": "tieba",
+    "百度贴吧社区": "tieba",
 
-    "雪球": "xueqiu",
-    "xueqiu": "xueqiu",
+    "toutiao": "toutiao",
+    "今日头条": "toutiao",
+    "头条": "toutiao",
+    "今日头条APP": "toutiao", 
  
+
+    "weibo": "weibo",
+    "微博": "weibo",
+    "新浪微博": "weibo",
+    "微博热搜": "weibo",  # 核心功能
+  
+
+    "zhihu": "zhihu",
+    "知乎": "zhihu",
+    "知乎网": "zhihu",
+    "知识问答社区": "zhihu"  # 核心定位
 }
 
 # 初始化 FastMCP 服务器
@@ -164,54 +277,44 @@ class NewsManager:
         return result
 
     def convert_to_markdown(self, data):
-        """
-        将API响应数据转换为Markdown格式
-
-        :param data: API响应字典，包含热榜数据
-        :return: Markdown格式的字符串
-        """
-        # 1. 处理标题和时间
-        # 将时间戳转换为可读格式
-        update_time = datetime.datetime.fromtimestamp(
-            data["updatedTime"]/1000).strftime("%Y-%m-%d %H:%M:%S")
-
+        # ...（元数据处理部分不变）
+        markdown_lines = []
         # 2. 处理每个新闻条目
         formatted_items = []
-        for idx, item in enumerate(data.get("items", []), 1):
-            # 提取基础信息
-            title = item["title"]
-            url = item["url"]
+        for idx, item in enumerate(data.get("data", []), 1):
+            # 提取基础信息（带默认值防止KeyError）
+            title = item.get("title", "无标题")
+            url = item.get("url") or item.get("mobileUrl", "#")  # 优先使用PC端链接
+            desc = item.get("desc", "无描述")
+            hot = item.get("hot", 0)
+            timestamp = item.get("timestamp")
+            cover = item.get("cover")  # 单独获取 cover 字段
 
-            # 解析extra.info字段
-            heat_info = ""
-            if "extra" in item and "info" in item["extra"]:
-                info = item["extra"]["info"]
-                # 分割热度和讨论信息
-                parts = info.split()
-                heat_part = ""
-                discuss_part = ""
+            # 处理条目发布时间（毫秒时间戳转可读格式）
+            post_time = (
+                datetime.datetime.fromtimestamp(
+                    timestamp / 1000).strftime("%Y-%m-%d %H:%M:%S")
+                if timestamp else "未知时间"
+            )
 
-                for part in parts:
-                    if "热度" in part:
-                        heat_part = part
-                    elif "讨论" in part:
-                        discuss_part = part
+            # 处理封面图（修正引号闭合问题）
+            cover_md = ""
+            if cover:  # 仅当 cover 非空时生成图片
+                cover_md = f"![封面]({cover})"  # 正确闭合双引号！
 
-                # 构建信息字符串
-                info_str = " | ".join(filter(None, [heat_part, discuss_part]))
-                if info_str:
-                    heat_info = f" <small>{info_str}</small>"
+            # 格式化单个条目（标题+链接、封面图、描述、热度、发布时间）
+            formatted_item = (
+                f"{idx}. [{title}]({url})"  # 标题链接后换行
+                f"{cover_md}"  # 封面图（可能为空）
+                f"**描述**: {desc}"  # 描述后换行
+                f"**热度**: {hot}"  # 热度后换行
+                f"**发布时间**: {post_time}"
+            )
+            formatted_items.append(formatted_item)
 
-            # 格式化条目
-            formatted_items.append(f"{idx}. [{title}]({url}){heat_info}")
-
-        # 3. 组合最终Markdown
-        return f"""
-                ### {data["id"]} 热榜
-                > 更新时间: {update_time}
-
-                {"  ".join(formatted_items)}
-                """.strip()
+        # 合并元数据和条目内容
+        markdown_lines.extend(formatted_items)
+        return "".join(markdown_lines)
 
     async def fetch_news(self, source: str) -> dict[str, Any] | None | str:
         """从新闻API获取数据并处理错误"""
@@ -235,8 +338,9 @@ class NewsManager:
                 try:
                     logger.debug(
                         f"正在获取新闻，来源: {normalized_source} (原输入: {source})")
-                    response = await client.get(self.base_url+f"/api/s?id={normalized_source}&latest", headers=headers)
+                    response = await client.get(self.base_url+f"/{normalized_source}", headers=headers)
                     response.raise_for_status()
+                    print(response.json())
                     return self.convert_to_markdown(response.json())
                 except httpx.TimeoutException:
                     logger.error(f"获取新闻超时: {normalized_source}")
@@ -308,7 +412,7 @@ news_mgr = NewsManager(BASE_URL)
 
 
 @mcp.tool()
-async def get_newsnow(source: str) -> dict[str, Any] | None:
+async def get_newsnow(source: Annotated[str, Field(description="新闻源")]) -> dict[str, Any] | None:
     """从指定源获取最新新闻"""
     return await news_mgr.fetch_news(source)
 
@@ -426,3 +530,4 @@ if __name__ == "__main__":
     # 初始化并运行服务器
     mcp.settings.port = int(os.getenv("HOSTNEWPORT"))
     mcp.run(transport='sse')
+
